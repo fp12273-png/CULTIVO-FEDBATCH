@@ -1,52 +1,51 @@
 // =========================================
 // LABORATORIO VIRTUAL - CULTIVO FED-BATCH
-// SIMULADOR REALISTA E INTERACTIVO (Processing)
+// p5.js – listo para web
 // =========================================
 
 // ---------- VARIABLES DEL PROCESO ----------
-float X, S, P;
-float muMax = 0.4;
-float Ks = 0.5;
-float Yxs = 0.5;
-float Ypx = 0.2;
+let X, S, P;
+let muMax = 0.4;
+let Ks = 0.5;
+let Yxs = 0.5;
+let Ypx = 0.2;
 
-float X0 = 0.1;
-float S0 = 20;
+let X0 = 0.1;
+let S0 = 20;
 
-float F = 0.05;   // Caudal de alimentación (L/h)
-float Sf = 50;    // Sustrato alimentado (g/L)
-float V = 1.0;    // Volumen constante (L)
+// FED-BATCH
+let F = 0.05;     // Caudal de alimentación (L/h)
+let Sf = 30;      // Sustrato en la alimentación (g/L)
+let V = 1.0;      // Volumen inicial (L)
 
-float dt = 0.03;
-boolean running = false;
-float angle = 0;
+let dt = 0.03;
+let running = false;
+let angle = 0;
 
 // ---------- SLIDERS ----------
-Slider sliderX0, sliderS0, sliderMu, sliderF, sliderSf;
+let sliderX0, sliderS0, sliderMu, sliderF, sliderSf;
 
 // ---------- BOTONES ----------
-Button btnStart, btnReset;
+let btnStart, btnReset;
 
 // ---------- DATOS PARA GRAFICAS ----------
-ArrayList<Float> Xv = new ArrayList<Float>();
-ArrayList<Float> Sv = new ArrayList<Float>();
-ArrayList<Float> Pv = new ArrayList<Float>();
+let Xv = [], Sv = [], Pv = [];
 
-void setup() {
-  size(1100, 600);
+function setup() {
+  createCanvas(1100, 600);
   resetSimulation();
 
-  sliderX0 = new Slider(40, 140, 220, 0.05, 1.0, X0, "Biomasa inicial (X₀)", "g/L");
-  sliderS0 = new Slider(40, 210, 220, 5, 40, S0, "Sustrato inicial (S₀)", "g/L");
-  sliderMu = new Slider(40, 280, 220, 0.1, 0.8, muMax, "μ máx", "h⁻¹");
-  sliderF  = new Slider(40, 350, 220, 0.0, 0.2, F, "Caudal F", "L/h");
-  sliderSf = new Slider(40, 420, 220, 10, 80, Sf, "Sustrato Sf", "g/L");
+  sliderX0 = new Slider(40, 150, 220, 0.05, 1.0, X0, "Biomasa inicial (X₀)", "g/L");
+  sliderS0 = new Slider(40, 220, 220, 5, 40, S0, "Sustrato inicial (S₀)", "g/L");
+  sliderMu = new Slider(40, 290, 220, 0.1, 0.8, muMax, "μ máx", "h⁻¹");
+  sliderF  = new Slider(40, 360, 220, 0.0, 0.2, F, "Caudal F", "L/h");
+  sliderSf = new Slider(40, 430, 220, 10, 60, Sf, "Sustrato Sf", "g/L");
 
-  btnStart = new Button(40, 480, 100, 35, "START");
-  btnReset = new Button(160, 480, 100, 35, "RESET");
+  btnStart = new Button(40, 500, 100, 35, "START");
+  btnReset = new Button(160, 500, 100, 35, "RESET");
 }
 
-void draw() {
+function draw() {
   background(230);
 
   drawPanel();
@@ -66,26 +65,31 @@ void draw() {
 }
 
 // ---------- MODELO FED-BATCH ----------
-void updateModel() {
+function updateModel() {
 
-  float mu = muMax * S / (Ks + S);
+  let mu = muMax * S / (Ks + S);
 
+  // Crecimiento
   X += mu * X * dt;
-  S += (-(1 / Yxs) * mu * X + (F / V) * (Sf - S)) * dt;
   P += Ypx * mu * X * dt;
 
-  if (S < 0) S = 0;
+  // Consumo + alimentación de sustrato
+  S += (F / V) * (Sf - S) * dt;
+  S -= (1 / Yxs) * mu * X * dt;
 
-  Xv.add(X);
-  Sv.add(S);
-  Pv.add(P);
+  // Aumento de volumen (fed-batch)
+  V += F * dt;
+
+  Xv.push(X);
+  Sv.push(S);
+  Pv.push(P);
 
   angle += 0.1;
 }
 
 // ---------- REACTOR ----------
-void drawReactor() {
-  pushMatrix();
+function drawReactor() {
+  push();
   translate(650, 50);
 
   noStroke();
@@ -100,30 +104,29 @@ void drawReactor() {
   fill(170);
   rect(20, -25, 220, 35, 20);
 
+  // Flecha de alimentación
+  stroke(0, 150, 0);
+  strokeWeight(4);
+  line(130, -25, 130, 0);
+  triangle(125, -5, 135, -5, 130, 5);
+
   fill(70, 160, 220);
   rect(15, 120, 230, 240, 35);
-
-  // Flecha de alimentación
-  stroke(0, 120, 0);
-  strokeWeight(3);
-  line(130, -60, 130, -5);
-  triangle(130, -5, 120, -20, 140, -20);
 
   stroke(70);
   strokeWeight(4);
   line(130, 10, 130, 350);
 
-  pushMatrix();
+  push();
   translate(130, 250);
   rotate(angle);
   stroke(40);
   strokeWeight(4);
   line(-55, 0, 55, 0);
   line(0, -45, 0, 45);
-  line(-40, -25, 40, 25);
-  popMatrix();
+  pop();
 
-  popMatrix();
+  pop();
 
   fill(0);
   textAlign(CENTER);
@@ -132,70 +135,63 @@ void drawReactor() {
 }
 
 // ---------- PANEL ----------
-void drawPanel() {
+function drawPanel() {
   fill(40);
   textSize(15);
-  textAlign(LEFT);
   text("PANEL DE CONTROL", 110, 100);
 
   fill(0);
   textSize(13);
-  text("Biomasa (X):  " + nf(X, 1, 2) + " g/L", 40, 560);
-  text("Sustrato (S): " + nf(S, 1, 2) + " g/L", 40, 585);
-
-  fill(90);
-  text("Sistema FED-BATCH – alimentación sin salida", 650, 550);
+  text("Biomasa (X): " + nf(X,1,2) + " g/L", 40, 560);
+  text("Sustrato (S): " + nf(S,1,2) + " g/L", 40, 580);
+  text("Volumen (V): " + nf(V,1,2) + " L", 40, 600);
 }
 
 // ---------- GRAFICAS ----------
-void drawGraphs() {
-  int gx = 310, gy = 430, gw = 740, gh = 150;
+function drawGraphs() {
+  let gx = 310, gy = 430, gw = 740, gh = 150;
 
   fill(255);
   stroke(0);
   rect(gx, gy, gw, gh);
 
-  line(gx, gy, gx, gy + gh);
-  line(gx, gy + gh, gx + gw, gy + gh);
-
-  fill(0);
-  textAlign(CENTER);
-  text("Tiempo (h)", gx + gw / 2, gy + gh + 15);
-
-  drawCurve(Xv, gx, gy, gh, color(0, 160, 0), 4);
-  drawCurve(Sv, gx, gy, gh, color(200, 40, 40), 4);
-  drawCurve(Pv, gx, gy, gh, color(40, 40, 200), 4);
+  drawCurve(Xv, gx, gy, gh, color(0,160,0), 4);
+  drawCurve(Sv, gx, gy, gh, color(200,40,40), 4);
+  drawCurve(Pv, gx, gy, gh, color(40,40,200), 4);
 }
 
-void drawCurve(ArrayList<Float> data, int x, int y, int h, color c, float scale) {
+function drawCurve(data, x, y, h, c, scale) {
   stroke(c);
   noFill();
   beginShape();
-  for (int i = 0; i < data.size(); i++) {
-    vertex(x + i, y + h - data.get(i) * scale);
+  for (let i = 0; i < data.length; i++) {
+    vertex(x + i, y + h - data[i] * scale);
   }
   endShape();
 }
 
 // ---------- RESET ----------
-void resetSimulation() {
-  X = sliderX0 != null ? sliderX0.value : X0;
-  S = sliderS0 != null ? sliderS0.value : S0;
+function resetSimulation() {
+  X0 = sliderX0 ? sliderX0.value : X0;
+  S0 = sliderS0 ? sliderS0.value : S0;
+  muMax = sliderMu ? sliderMu.value : muMax;
+  F = sliderF ? sliderF.value : F;
+  Sf = sliderSf ? sliderSf.value : Sf;
+
+  X = X0;
+  S = S0;
   P = 0;
+  V = 1.0;
 
-  muMax = sliderMu != null ? sliderMu.value : muMax;
-  F = sliderF != null ? sliderF.value : F;
-  Sf = sliderSf != null ? sliderSf.value : Sf;
-
-  Xv.clear();
-  Sv.clear();
-  Pv.clear();
+  Xv = [];
+  Sv = [];
+  Pv = [];
 
   running = false;
 }
 
 // ---------- MOUSE ----------
-void mousePressed() {
+function mousePressed() {
   sliderX0.check();
   sliderS0.check();
   sliderMu.check();
@@ -206,11 +202,10 @@ void mousePressed() {
     resetSimulation();
     running = true;
   }
-
   if (btnReset.over()) resetSimulation();
 }
 
-void mouseDragged() {
+function mouseDragged() {
   sliderX0.update();
   sliderS0.update();
   sliderMu.update();
@@ -218,7 +213,7 @@ void mouseDragged() {
   sliderSf.update();
 }
 
-void mouseReleased() {
+function mouseReleased() {
   sliderX0.release();
   sliderS0.release();
   sliderMu.release();
@@ -228,76 +223,45 @@ void mouseReleased() {
 
 // ---------- CLASES ----------
 class Slider {
-  float x, y, w, minV, maxV, value;
-  String label, unit;
-  boolean drag = false;
-
-  Slider(float x, float y, float w, float minV, float maxV, float v, String label, String unit) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.minV = minV;
-    this.maxV = maxV;
-    this.value = v;
-    this.label = label;
-    this.unit = unit;
+  constructor(x,y,w,minV,maxV,v,label,unit){
+    this.x=x; this.y=y; this.w=w;
+    this.minV=minV; this.maxV=maxV;
+    this.value=v; this.label=label; this.unit=unit;
+    this.drag=false;
   }
-
-  void display() {
-    fill(40);
-    textAlign(LEFT);
-    text(label, x, y - 15);
-
-    stroke(0);
-    line(x, y, x + w, y);
-
-    float px = map(value, minV, maxV, x, x + w);
-    fill(80);
-    ellipse(px, y, 14, 14);
-
-    fill(40);
-    text(nf(value, 1, 2) + " " + unit, x + w + 15, y + 5);
+  display(){
+    fill(0); text(this.label,this.x,this.y-15);
+    line(this.x,this.y,this.x+this.w,this.y);
+    let px=map(this.value,this.minV,this.maxV,this.x,this.x+this.w);
+    ellipse(px,this.y,14);
+    text(nf(this.value,1,2)+" "+this.unit,this.x+this.w+10,this.y+5);
   }
-
-  void check() {
-    float px = map(value, minV, maxV, x, x + w);
-    if (dist(mouseX, mouseY, px, y) < 10) drag = true;
+  check(){
+    let px=map(this.value,this.minV,this.maxV,this.x,this.x+this.w);
+    if(dist(mouseX,mouseY,px,this.y)<10) this.drag=true;
   }
-
-  void update() {
-    if (drag) {
-      float nx = constrain(mouseX, x, x + w);
-      value = map(nx, x, x + w, minV, maxV);
+  update(){
+    if(this.drag){
+      let nx=constrain(mouseX,this.x,this.x+this.w);
+      this.value=map(nx,this.x,this.x+this.w,this.minV,this.maxV);
     }
   }
-
-  void release() {
-    drag = false;
-  }
+  release(){ this.drag=false; }
 }
 
 class Button {
-  float x, y, w, h;
-  String label;
-
-  Button(float x, float y, float w, float h, String label) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    this.label = label;
+  constructor(x,y,w,h,label){
+    this.x=x; this.y=y; this.w=w; this.h=h; this.label=label;
   }
-
-  void display() {
+  display(){
     fill(180);
-    rect(x, y, w, h, 8);
+    rect(this.x,this.y,this.w,this.h,8);
     fill(0);
-    textAlign(CENTER, CENTER);
-    text(label, x + w/2, y + h/2);
+    textAlign(CENTER,CENTER);
+    text(this.label,this.x+this.w/2,this.y+this.h/2);
   }
-
-  boolean over() {
-    return mouseX > x && mouseX < x + w &&
-           mouseY > y && mouseY < y + h;
+  over(){
+    return mouseX>this.x && mouseX<this.x+this.w &&
+           mouseY>this.y && mouseY<this.y+this.h;
   }
 }
